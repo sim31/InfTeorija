@@ -1,0 +1,8 @@
+# depslib dependency file v1.0
+1575500485 source:d:\ps\4kursas\1semestras\informacijos-teorija\programs\infteorija\mod_intervalinis_kodas\mod_int_encode\main.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<direct.h>
+	<unistd.h>
+
