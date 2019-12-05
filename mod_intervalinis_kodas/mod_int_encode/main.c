@@ -15,7 +15,8 @@
 typedef struct symbol
 {
     int binary_representation[16];              // bitai tokie, kaip nuskaityti is buferio
-    int last_seen_index;                        // paskutio pasirodymo tekste indeksas
+    int last_seen_index;                        // paskutinio pasirodymo tekste indeksas
+    struct symbol *next;
 } Symbol;
 
 int main(int argc, char *argv[])
@@ -142,9 +143,9 @@ int main(int argc, char *argv[])
             output_file_name[last_folder_index + 4] = 'u';
             output_file_name[last_folder_index + 5] = 't';
             output_file_name[last_folder_index + 6] = '.';
-            output_file_name[last_folder_index + 7] = 't';
-            output_file_name[last_folder_index + 8] = 'x';
-            output_file_name[last_folder_index + 9] = 't';
+            output_file_name[last_folder_index + 7] = 'b';
+            output_file_name[last_folder_index + 8] = 'i';
+            output_file_name[last_folder_index + 9] = 'n';
             output_file_name[last_folder_index + 10] = '\0';
         } else {
             #ifdef WINDOWS
@@ -190,16 +191,44 @@ int main(int argc, char *argv[])
             output_file_name[string_end_index + 4] = 'u';
             output_file_name[string_end_index + 5] = 't';
             output_file_name[string_end_index + 6] = '.';
-            output_file_name[string_end_index + 7] = 't';
-            output_file_name[string_end_index + 8] = 'x';
-            output_file_name[string_end_index + 9] = 't';
+            output_file_name[string_end_index + 7] = 'b';
+            output_file_name[string_end_index + 8] = 'i';
+            output_file_name[string_end_index + 9] = 'n';
             output_file_name[string_end_index + 10] = '\0';
         }
     }
 
     // sukuriam output faila:
     FILE *output_file;
-    output_file = fopen(output_file_name, "rb");
+    output_file = fopen(output_file_name, "wb");
+
+    // Susitvarkem su pradiniais failais ir vartotojo inputu.
+
+    /*
+    Susikuriam pagalbini faila - butinas tam, kad galetume suformuoti galutini faila.
+    Problemos esme tame, kad isvesties failo pradzioje turi buti zodynas, taciau skaitydami
+    ivesties faila mes jo pilnai dar nezinome. Ideja irasineti ir zodyno zodzius
+    (failo pradzioje), ir uzkoduotus simbolius - failo pabaigoje - vienu metu yra negalima
+    (C kalboje nera budo kaip rasyti failo pradzioje "pastumiant" failo turini i prieki,
+    t.y. rasoma bus ant virsaus jau esamo turinio). Vienintele iseitis - sujungti abu jau
+    suformuotus failus i viena programos darbo pabaigoje.
+    */
+
+    char output_temp_file_name[FILENAME_MAX];
+    i = 0;
+    while(output_file_name[i] != '\0'){
+        output_temp_file_name[i] = output_file_name[i];
+        i++;
+    }
+    output_temp_file_name[i] = '_';
+    output_temp_file_name[i + 1] = 't';
+    output_temp_file_name[i + 2] = '\0';
+
+    FILE *output_temp_file;
+    output_temp_file = fopen(output_temp_file_name, "wb");
+
+    // pagalbiniai kintamieji:
+    Symbol *init_node;                                  // rodykle i simboliu linked lista
 
     // skaitom input faila:
 
@@ -208,7 +237,7 @@ int main(int argc, char *argv[])
 
     int n;                                              // kiek baitu buvo nuskaityta i buferi
     unsigned char buffer[BUFFER_SIZE];                  // buferis - jame laikoma nuskaitytas inputas
-    int current_byte;                                   // einamasis buferio baitas, is kurio imame bitus
+    int current_byte;                                   // einamojo buferio baito numeris, is kurio imame bitus
     int bits_left_in_byte;                              // kiek bitu liko einamajame baite dar nepaimtu
 
     while(!feof(input_file)){
@@ -220,6 +249,7 @@ int main(int argc, char *argv[])
 
     fclose(input_file);
     fclose(output_file);
+    fclose(output_temp_file);
     return 0;
 }
 
