@@ -1,0 +1,14 @@
+bBuf            - bitai buferyj
+bL              - like bitai
+bN              - bit_number
+
+
+IF bL + bBuf >= bN
+    ret symbol
+ELSE
+    bL = bL + bBuf
+    read into buffer
+    IF bL + bBuf >= bN
+        ret symbol
+    ELSE
+        ret end_symbol
