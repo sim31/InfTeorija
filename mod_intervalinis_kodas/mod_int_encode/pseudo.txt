@@ -12,3 +12,12 @@ ELSE
         ret symbol
     ELSE
         ret end_symbol
+        
+        
+        
+        
+        
+        
+Naudingos komandos:
+
+xxd -b file         - bash komanda binary failo pasiziurejimui
