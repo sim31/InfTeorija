@@ -504,6 +504,7 @@ int main(int argc, char *argv[])
 	      symbols_in_between[symbols_in_between_num - 1] = symbols_types[i];
 	    }
 	  }
+	  free(symbols_in_between);
 
 	  printf("\nSYMS IN BETW NUM %d\n", symbols_in_between_num);
 
