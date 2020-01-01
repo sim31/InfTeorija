@@ -272,7 +272,7 @@ int main(int argc, char *argv[])
       }
     }
 
-    // suformuojam output failo headeri'i:
+    // suformuojam output failo header'i:
     // 1 baitas - pirmi 4 bitai is kaires - bitu kiekis simbolyje (skaiciuojama nuo nulio - 0 reiskia 1 bita, 1 - 2 bitus ir t.t.), paskutinis bitas - koduote (c1 - 0 arba c2 - 1)
     // 1 baitas - netilpusiu bitu kiekis (0 - 15)
     // 2 baitai - netilpe bitai (trukstamos vietos is galo uzpildomos nuliais)
@@ -405,18 +405,18 @@ int main(int argc, char *argv[])
 
     // kadangi kodas yra modifikuotas, tai zinodami zodyno dydi, galime rasti ir visus reikalingus kodus. Sudedame visus galimus kodus i masyva:
         
-    int *all_codes[dict_size - 1];
+    int *all_codes[dict_size];
     
-    for(i = 0; i < dict_size - 1; i++){
+    for(i = 0; i < dict_size; i++){
       all_codes[i] = malloc(CODE_ARR_LENGTH * sizeof(int));
     }
     
     if(strcmp(argv[2], "c1") == 0){
-      for(i = 0; i < dict_size - 1; i++){
+      for(i = 0; i < dict_size; i++){
 	get_c1_code(i, all_codes[i]);
       }
     } else {
-      for(i = 0; i < dict_size - 1; i++){
+      for(i = 0; i < dict_size; i++){
 	get_c2_code(i, all_codes[i]);
       }
     }
@@ -437,6 +437,10 @@ int main(int argc, char *argv[])
     for(i = 0; i < dict_size; i++){
       symbols_types[i] = i;
     }
+
+    current_buffer_bit_in_byte = 0;
+    current_buffer_byte = 0;
+    mult = 128;
     
     int current_symbol = dict_size;   // einamasis simbolis skaitant simbolius is failo; laikoma, kad zodynas yra pridetas failo pradzioje
     while(1){
@@ -460,7 +464,12 @@ int main(int argc, char *argv[])
           }
         }
         if(equal_bits == bit_number){
-	 
+	  printf("Current node %d\n", current_nodes_number);
+	  printf("\n");
+	  for(i = 0; i < current_symbol; i++){
+	    printf("%d", symbols_types[i]);
+	  }
+	  
 	  // tikrinam, kiek tarpe yra skirtingu simboliu
 	  int* symbols_in_between = malloc((dict_size - 1) * sizeof(int));
 	  for(i = 0; i < dict_size - 1; i++){
@@ -473,7 +482,7 @@ int main(int argc, char *argv[])
 	    }
 	    int found = 0;
 	    for(int j = 0; j < symbols_in_between_num; j++){
-	      if(symbols_in_between[j] == symbols_types[j]){
+	      if(symbols_in_between[j] == symbols_types[i]){
 		found = 1;
 		break;
 	      }
@@ -482,13 +491,49 @@ int main(int argc, char *argv[])
 	      symbols_in_between_num++;
 	      symbols_in_between[symbols_in_between_num - 1] = symbols_types[i];
 	    }
+	    //free(symbols_in_between);
 	  }
-	  if(symbols_in_between_num > 0){
-	    printf("\n");
-	    for(i = 0; i < symbols_in_between_num; i++){
-	      printf("%d\t", symbols_in_between[i]);
+
+	  //printf("\nSYMS IN BETW NUM %d\n", symbols_in_between_num);
+	  
+	  // irasinesim kodus i buferi ir buferi irasinesim (kai bus pripildytas) i output faila
+
+	  for(i = 1; i <= all_codes[symbols_in_between_num][0]; i++){
+	    buffer[current_buffer_byte] += current_node->binary_representation[i] * mult;
+	    current_buffer_bit_in_byte++;
+	    mult = mult >> 1;
+	    if(current_buffer_bit_in_byte == 8){
+	      current_buffer_byte++;
+	      current_buffer_bit_in_byte = 0;
+	      mult = 128;
 	    }
+	    if(current_buffer_byte == BUFFER_SIZE){
+	      // pripildem buferi; metas irasyt ji i faila
+	      current_buffer_bit_in_byte = 0;
+	      current_buffer_byte = 0;
+	      mult = 128;
+	      fwrite(buffer, sizeof(buffer), 1, output_file);
+	      for(int j = 0; j < BUFFER_SIZE; j++){
+		buffer[j] = 0;
+	      }
+	    } 
 	  }
+	  
+	  
+
+	  /*
+	  printf("\n%d", symbols_in_between_num);
+	  //	  printf("\nALL CODES SIZE: %d", dict_size - 1);
+	  
+	  printf("\t");
+	  int code_num = all_codes[symbols_in_between_num][0];
+
+	  printf("\nSymbols in between:\n");
+	  for(i = 1; i <= code_num; i++){
+	    printf("%d", all_codes[symbols_in_between_num][i]);
+	  }
+	  */
+	  
           break;
         }
 	
@@ -500,13 +545,9 @@ int main(int argc, char *argv[])
 	symbols_types_size *= 2;
 	symbols_types = realloc(symbols_types, symbols_types_size * sizeof(int));
       }
-      symbols_types[current_symbol] = current_nodes_number;
+      symbols_types[current_symbol] = current_nodes_number;	  
       current_symbol++;
     }   
-
-    for(i = 0; i < current_symbol - 1; i++){
-      printf("\n%d", symbols_types[i]);
-    }
     
     fclose(input_file);
     fclose(output_file);

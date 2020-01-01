@@ -21,3 +21,11 @@ ELSE
 Naudingos komandos:
 
 xxd -b file         - bash komanda binary failo pasiziurejimui
+
+
+
+
+
+
+
+012340112220033
