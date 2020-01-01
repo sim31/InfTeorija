@@ -29,3 +29,5 @@ xxd -b file         - bash komanda binary failo pasiziurejimui
 
 
 012340112220033
+ 
+00101 00101 1 00101 1 1 011 1 00101 1 00101

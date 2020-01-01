@@ -421,15 +421,18 @@ int main(int argc, char *argv[])
       }
     }
     
-    // pradesim teksto uzkodavima ir irasinejima i faila.
-    // is naujo skaitom faila:
+    // pradesim teksto uzkodavima ir irasinejima i rezultatu faila.
+    // is naujo skaitysim input faila.
 
     rewind(input_file);
     Symbol *read_symbol = malloc(sizeof(Symbol));
     bits_left_in_buffer = 0;
     current_buffer_byte = 0;
     current_buffer_bit_in_byte = 0;
-    left_bits_number = 0;
+
+    
+    int current_write_buffer_byte = 0;
+    int current_write_buffer_bit_in_byte = 0;
     int symbols_types_size = dict_size * 2;
     int* symbols_types = malloc(symbols_types_size * sizeof(int));        // masyvas, kuriame irasome nuskaitytu is failo simboliu atitikima zodziui is zodyno (t.y. simbolio zodyne eiles nr.)
 
@@ -438,11 +441,20 @@ int main(int argc, char *argv[])
       symbols_types[i] = i;
     }
 
+    unsigned char write_buffer[BUFFER_SIZE];    // naujas buferis - kadangi skaitom ir rasom vienu metu, negalima naudoti to pacio
+    
+    // isvalom abu buferius
+    for(int j = 0; j < BUFFER_SIZE; j++){
+      buffer[j] = 0;
+      write_buffer[j] = 0;
+    }
+
     current_buffer_bit_in_byte = 0;
     current_buffer_byte = 0;
     mult = 128;
     
     int current_symbol = dict_size;   // einamasis simbolis skaitant simbolius is failo; laikoma, kad zodynas yra pridetas failo pradzioje
+
     while(1){
       result = read_symbol_from_input(bit_number, input_file, read_symbol, buffer, &bits_left_in_buffer,
 					  &current_buffer_byte, &current_buffer_bit_in_byte, left_bits, &left_bits_number);
@@ -464,12 +476,12 @@ int main(int argc, char *argv[])
           }
         }
         if(equal_bits == bit_number){
-	  printf("Current node %d\n", current_nodes_number);
+	  printf("\nCurrent node %d\n", current_nodes_number);
 	  printf("\n");
 	  for(i = 0; i < current_symbol; i++){
 	    printf("%d", symbols_types[i]);
 	  }
-	  
+
 	  // tikrinam, kiek tarpe yra skirtingu simboliu
 	  int* symbols_in_between = malloc((dict_size - 1) * sizeof(int));
 	  for(i = 0; i < dict_size - 1; i++){
@@ -491,48 +503,54 @@ int main(int argc, char *argv[])
 	      symbols_in_between_num++;
 	      symbols_in_between[symbols_in_between_num - 1] = symbols_types[i];
 	    }
-	    //free(symbols_in_between);
 	  }
 
-	  //printf("\nSYMS IN BETW NUM %d\n", symbols_in_between_num);
-	  
+	  printf("\nSYMS IN BETW NUM %d\n", symbols_in_between_num);
+
 	  // irasinesim kodus i buferi ir buferi irasinesim (kai bus pripildytas) i output faila
 
-	  for(i = 1; i <= all_codes[symbols_in_between_num][0]; i++){
-	    buffer[current_buffer_byte] += current_node->binary_representation[i] * mult;
-	    current_buffer_bit_in_byte++;
+	  // is pradziu randam norima irasyti koda:
+	  
+	  int *current_code = malloc(CODE_ARR_LENGTH * sizeof(int));
+	  for(i = 0; i <= all_codes[symbols_in_between_num][0]; i++){
+	    current_code[i] = all_codes[symbols_in_between_num][i];
+	  }
+	  
+	  printf("Current code:\n");
+	  for(i = 1; i <= current_code[0]; i++){
+	    printf("%d", current_code[i]);
+	  }
+	  
+	  /*
+	  printf("ALL CODES");
+	  for(i = 0; i < dict_size; i++){
+	    printf("\n");
+	    for(int j = 0; j <= all_codes[i][0]; j++){
+	      printf("%d", all_codes[i][j]);
+	    }
+	  }
+	  */
+	  
+	  for(i = 1; i <= current_code[0]; i++){
+	    write_buffer[current_write_buffer_byte] += current_code[i] * mult;
+	    current_write_buffer_bit_in_byte++;
 	    mult = mult >> 1;
-	    if(current_buffer_bit_in_byte == 8){
-	      current_buffer_byte++;
-	      current_buffer_bit_in_byte = 0;
+	    if(current_write_buffer_bit_in_byte == 8){
+	      current_write_buffer_byte++;
+	      current_write_buffer_bit_in_byte = 0;
 	      mult = 128;
 	    }
-	    if(current_buffer_byte == BUFFER_SIZE){
+	    if(current_write_buffer_byte == BUFFER_SIZE){
 	      // pripildem buferi; metas irasyt ji i faila
-	      current_buffer_bit_in_byte = 0;
-	      current_buffer_byte = 0;
+	      current_write_buffer_bit_in_byte = 0;
+	      current_write_buffer_byte = 0;
 	      mult = 128;
-	      fwrite(buffer, sizeof(buffer), 1, output_file);
+	      fwrite(write_buffer, sizeof(buffer), 1, output_file);
 	      for(int j = 0; j < BUFFER_SIZE; j++){
-		buffer[j] = 0;
+		write_buffer[j] = 0;
 	      }
 	    } 
 	  }
-	  
-	  
-
-	  /*
-	  printf("\n%d", symbols_in_between_num);
-	  //	  printf("\nALL CODES SIZE: %d", dict_size - 1);
-	  
-	  printf("\t");
-	  int code_num = all_codes[symbols_in_between_num][0];
-
-	  printf("\nSymbols in between:\n");
-	  for(i = 1; i <= code_num; i++){
-	    printf("%d", all_codes[symbols_in_between_num][i]);
-	  }
-	  */
 	  
           break;
         }
@@ -547,8 +565,22 @@ int main(int argc, char *argv[])
       }
       symbols_types[current_symbol] = current_nodes_number;	  
       current_symbol++;
-    }   
-    
+    }
+
+    // galejo likti neirasytu bitu, jei "didelis" buferis nebuvo uzpildytas; jei tokiu liko, irasom juos i rezultatu faila su mazesniu buferiu:    
+    if(current_write_buffer_byte > 0 || current_write_buffer_bit_in_byte > 0){
+      if(current_write_buffer_bit_in_byte > 0){
+	new_buf_size = current_write_buffer_byte + 1;
+      } else {
+	new_buf_size = current_write_buffer_byte;
+      }
+      unsigned char buf3[new_buf_size];
+      for(i = 0; i < new_buf_size; i++){
+	buf3[i] = write_buffer[i];
+      }
+      fwrite(buf3, sizeof(buf3), 1, output_file);
+    }
+
     fclose(input_file);
     fclose(output_file);
     return 0;
