@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
 
     // pagalbiniai kintamieji:
     Symbol *init_node = NULL;                           // rodykle i simboliu linked lista (t.y. zodyna)
-    Symbol *current_node = NULL;                        // rodykle i paskutini elementa linked liste
+    Symbol *current_node = NULL;                        // rodykle iteravimui per linked lista
     unsigned char buffer[BUFFER_SIZE];                  // buferis - jame laikomas nuskaitytas inputas
     int bits_left_in_buffer = 0;
     int current_buffer_byte = 0;                        // einamojo buferio baito numeris, is kurio imame bitus
@@ -328,7 +328,8 @@ int main(int argc, char *argv[])
       size_of_dict++;
       current_node = current_node->next;
     }
-    
+
+    size_of_dict--;
     unsigned char mask = 1;
     for(i = 0; i < 8; i++){
       buf1[5] += mask & size_of_dict;
@@ -341,6 +342,7 @@ int main(int argc, char *argv[])
       buf1[4] += mask & size_of_dict;
       mask = mask << 1;
     }
+    size_of_dict++;
     
     // irasom buferi i output faila:
     fwrite(buf1, sizeof(buf1), 1, output_file);
@@ -462,7 +464,6 @@ int main(int argc, char *argv[])
 	break;
       }
 
-      int *current_symbols_code = malloc(CODE_ARR_LENGTH * sizeof(int));   // rastas kodas (c1 arba c2) einamajam simboliui
       // kodo radimas nuskaitytam simboliui
 
       int current_nodes_number = 0;               // einamojo zodzio zodyne numeris
@@ -552,7 +553,7 @@ int main(int argc, char *argv[])
 	      }
 	    } 
 	  }
-	  
+	  //free(current_code);
           break;
         }
 	
@@ -584,6 +585,14 @@ int main(int argc, char *argv[])
 
     fclose(input_file);
     fclose(output_file);
+
+    // paleidziam atminti
+    for(i = 0; i < dict_size; i++){
+      free(all_codes[i]);
+    }
+    free(read_symbol);
+    free(symbols_types);
+
     return 0;
 }
 
@@ -746,6 +755,7 @@ void get_c2_code(int k, int arr[CODE_ARR_LENGTH]){
     arr[i] = binary_number_reversed[j];
     j--;
   }
+  free(c1_code);
 }
 
 int get_log_infimum(int k){
