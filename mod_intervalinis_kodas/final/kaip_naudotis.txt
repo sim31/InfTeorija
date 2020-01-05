@@ -1,0 +1,12 @@
+Pavyzdys:
+
+Turime "in.txt" faila, kuris yra pradinis input failas (pries visus kodavimus)
+Ji uzkoduojame, nurodydami bitu kieki, koduote ir jo varda:
+
+    ./encode 6 c2 in.txt
+    
+Sukuriamas binary failas "output.bin". Ji iskoduojame, nurodydami jo pavadinima:
+
+    /decode output.bin
+
+Gaunamas iskoduotas failas "decoded.txt", kuris turi buti toks pats, kaip ir pradinis ("in.txt")
