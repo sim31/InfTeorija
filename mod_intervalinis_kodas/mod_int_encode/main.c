@@ -114,7 +114,6 @@ int main(int argc, char *argv[])
     input_file = fopen(input_file_name, "rb");
     if(input_file == 0){
         printf("\tNepavyko rasti ivesties failo.\n");
-        fclose(input_file);
         return -1;
     }
 
@@ -252,22 +251,7 @@ int main(int argc, char *argv[])
 	  current_node = current_node->next;
 	  current_node->next = NULL;
 	}
-      } else {
-	printf("result: %d\n", result);
-	break;
-      }
-    }
-
-    // isvedam i ekrana
-    current_node = init_node;
-    while(1){
-      for(i = 0; i < bit_number; i++){
-	printf("%d", current_node->binary_representation[i]);
-      }
-      printf("\n");
-      if(current_node->next != NULL){
-        current_node = current_node->next;
-      } else {
+      } else {	
 	break;
       }
     }
@@ -461,11 +445,7 @@ int main(int argc, char *argv[])
       if(result != 1){
 	break;
       }
-      //printf("\n%d bit number", bit_number);
-      printf("\nHERE\n");
-      for(i = 0; i < bit_number; i++){
-	printf("%d", read_symbol->binary_representation[i]);
-      }
+      
       // kodo radimas nuskaitytam simboliui
       int current_nodes_number = 0;
       Symbol *node_to_compare = init_node;
@@ -477,8 +457,6 @@ int main(int argc, char *argv[])
           }
         }
 	if(equal_bits == bit_number){
-	  printf("\nCurrent node %d\n", current_nodes_number);
-	  printf("\n");
 	  int this_symbol_last_seen = last_seen_index[current_nodes_number];
 	  int distance = 0;
 	  for(i = 0; i < dict_size; i++){
@@ -486,7 +464,6 @@ int main(int argc, char *argv[])
 	      distance++;
 	    }
 	  }
-	  printf("\ndistance %d", distance);
 	  last_seen_index[current_nodes_number] = current_symbol;
 	  
 	  // randam koda pagal distance ir irasom ji i buferi
@@ -494,11 +471,6 @@ int main(int argc, char *argv[])
 
 	  for(i = 0; i <= all_codes[distance][0]; i++){
 	    current_code[i] = all_codes[distance][i];
-	  }
-	  
-	  printf("Current code:\n");
-	  for(i = 1; i <= current_code[0]; i++){
-	    printf("%d", current_code[i]);
 	  }
 	  
 	  for(i = 1; i <= current_code[0]; i++){
@@ -744,4 +716,3 @@ unsigned char get_mask(int current_bit){
     }
   }
 }
-

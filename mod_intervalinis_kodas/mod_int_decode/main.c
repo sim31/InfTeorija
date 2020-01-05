@@ -282,24 +282,6 @@ int main(int argc, char *argv[])
     for(i = 0; i < dict_size; i++){
       get_c1_code(i, all_c1_codes[i]);
     }
-    
-      /*
-    } else {
-      for(i = 0; i < dict_size; i++){
-	get_c2_code(i, all_codes[i]);
-      }
-    }
-      */
-
-    /*
-    printf("ALL CODES");
-    for(i = 0; i < dict_size; i++){
-      printf("\n");
-      for(int j = 0; j <= all_codes[i][0]; j++){
-	printf("%d", all_codes[i][j]);
-      }
-    }
-    */
 
     // susitvarkem su antrastem ir zodynu; pradesim kodu skaityma ir dekodavima
 
@@ -348,7 +330,6 @@ int main(int argc, char *argv[])
       } else {
 	leftovers_buffer_size = current_write_buffer_byte;
       }
-      printf("\nsize %d", leftovers_buffer_size);
       unsigned char leftovers_buffer[leftovers_buffer_size];
       
       // pirma irasom write buferyj likusius bitus
@@ -577,12 +558,6 @@ int get_symbol(Symbol *symbol_to_get, unsigned char read_buffer[BUFFER_SIZE], FI
     }
   }
   
-  printf("\n%d %d\n", *current_buffer_byte, *current_buffer_bit_in_byte);
-  for(int i = 1; i <= found_code[0]; i++){
-    printf("%d", found_code[i]);
-  }
-  printf("\n");
-  
   // bandom ieskoti suformuoto kodo visu galimu kodu masyve:
   int distance = -1;
   int equal_bits;
@@ -608,12 +583,10 @@ int get_symbol(Symbol *symbol_to_get, unsigned char read_buffer[BUFFER_SIZE], FI
   }
 
   // jei koduote buvo c1, tai jau radom distancija; jei koduote yra c2, reikia papildomu veiksmu:
-  printf("\ndistance %d\n", distance);
   if(coding == 1){
 
     // zinodami c1 kodo parametra k, galime nusistatyti c2 kodo ilgi:
     int code_length = 2 + distance + 2 * get_log_infimum(distance);
-    printf("\nlength %d\n", code_length);
 
     // nuskaitom trukstamus bitus:
 
@@ -724,7 +697,6 @@ int get_symbol(Symbol *symbol_to_get, unsigned char read_buffer[BUFFER_SIZE], FI
       last_seen_index[i] = *current_symbol;
     }      
   }
-  printf("\nsymbol number %d\n", symbol_number);
   (*current_symbol)++;
   
   // radom simbolio indeksa zodyne! dabar reikia suformuoti pati simboli:
@@ -737,11 +709,3 @@ int get_symbol(Symbol *symbol_to_get, unsigned char read_buffer[BUFFER_SIZE], FI
   }
   return 0;
 }
-
-
-
-
-
-
-
-  
