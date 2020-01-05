@@ -354,7 +354,6 @@ int main(int argc, char *argv[])
 
     current_node = init_node;
 
-    int last_seen_index = 0;
     for(i = 0; i < BUFFER_SIZE; i++){
       buffer[i] = 0;
     }
@@ -431,18 +430,17 @@ int main(int argc, char *argv[])
     bits_left_in_buffer = 0;
     current_buffer_byte = 0;
     current_buffer_bit_in_byte = 0;
+    left_bits_number = 0;
 
     
     int current_write_buffer_byte = 0;
     int current_write_buffer_bit_in_byte = 0;
-    int symbols_types_size = dict_size * 2;
-    int* symbols_types = malloc(symbols_types_size * sizeof(int));        // masyvas, kuriame irasome nuskaitytu is failo simboliu atitikima zodziui is zodyno (t.y. simbolio zodyne eiles nr.)
 
-    // "fiktyviai" pridedame zodyna i simboliu tipo masyvo pradzia
+    int last_seen_index[dict_size];
     for(i = 0; i < dict_size; i++){
-      symbols_types[i] = i;
+      last_seen_index[i] = i;
     }
-
+    
     unsigned char write_buffer[BUFFER_SIZE];    // naujas buferis - kadangi skaitom ir rasom vienu metu, negalima naudoti to pacio
     
     // isvalom abu buferius
@@ -459,79 +457,49 @@ int main(int argc, char *argv[])
 
     while(1){
       result = read_symbol_from_input(bit_number, input_file, read_symbol, buffer, &bits_left_in_buffer,
-					  &current_buffer_byte, &current_buffer_bit_in_byte, left_bits, &left_bits_number);
+				      &current_buffer_byte, &current_buffer_bit_in_byte, left_bits, &left_bits_number);
       if(result != 1){
 	break;
       }
-
+      //printf("\n%d bit number", bit_number);
+      printf("\nHERE\n");
+      for(i = 0; i < bit_number; i++){
+	printf("%d", read_symbol->binary_representation[i]);
+      }
       // kodo radimas nuskaitytam simboliui
-
-      int current_nodes_number = 0;               // einamojo zodzio zodyne numeris
+      int current_nodes_number = 0;
       Symbol *node_to_compare = init_node;
-
       while(node_to_compare->next != NULL){
-        int equal_bits = 0;
+	int equal_bits = 0;
         for(i = 0; i < bit_number; i++){
           if(read_symbol->binary_representation[i] == node_to_compare->binary_representation[i]){
             equal_bits++;
           }
         }
-        if(equal_bits == bit_number){
+	if(equal_bits == bit_number){
 	  printf("\nCurrent node %d\n", current_nodes_number);
 	  printf("\n");
-	  for(i = 0; i < current_symbol; i++){
-	    printf("%d", symbols_types[i]);
-	  }
-
-	  // tikrinam, kiek tarpe yra skirtingu simboliu
-	  int* symbols_in_between = malloc((dict_size - 1) * sizeof(int));
-	  for(i = 0; i < dict_size - 1; i++){
-	    symbols_in_between[i] = -1;
-	  }
-	  int symbols_in_between_num = 0;
-	  for(i = current_symbol - 1; i >= 0; i--){
-	    if(current_nodes_number == symbols_types[i]){
-	      break;
-	    }
-	    int found = 0;
-	    for(int j = 0; j < symbols_in_between_num; j++){
-	      if(symbols_in_between[j] == symbols_types[i]){
-		found = 1;
-		break;
-	      }
-	    }
-	    if(found != 1){
-	      symbols_in_between_num++;
-	      symbols_in_between[symbols_in_between_num - 1] = symbols_types[i];
+	  int this_symbol_last_seen = last_seen_index[current_nodes_number];
+	  int distance = 0;
+	  for(i = 0; i < dict_size; i++){
+	    if(last_seen_index[i] > this_symbol_last_seen){
+	      distance++;
 	    }
 	  }
-	  free(symbols_in_between);
-
-	  printf("\nSYMS IN BETW NUM %d\n", symbols_in_between_num);
-
-	  // irasinesim kodus i buferi ir buferi irasinesim (kai bus pripildytas) i output faila
-
-	  // is pradziu randam norima irasyti koda:
+	  printf("\ndistance %d", distance);
+	  last_seen_index[current_nodes_number] = current_symbol;
 	  
+	  // randam koda pagal distance ir irasom ji i buferi
 	  int *current_code = malloc(CODE_ARR_LENGTH * sizeof(int));
-	  for(i = 0; i <= all_codes[symbols_in_between_num][0]; i++){
-	    current_code[i] = all_codes[symbols_in_between_num][i];
+
+	  for(i = 0; i <= all_codes[distance][0]; i++){
+	    current_code[i] = all_codes[distance][i];
 	  }
 	  
 	  printf("Current code:\n");
 	  for(i = 1; i <= current_code[0]; i++){
 	    printf("%d", current_code[i]);
 	  }
-	  
-	  /*
-	  printf("ALL CODES");
-	  for(i = 0; i < dict_size; i++){
-	    printf("\n");
-	    for(int j = 0; j <= all_codes[i][0]; j++){
-	      printf("%d", all_codes[i][j]);
-	    }
-	  }
-	  */
 	  
 	  for(i = 1; i <= current_code[0]; i++){
 	    write_buffer[current_write_buffer_byte] += current_code[i] * mult;
@@ -552,23 +520,15 @@ int main(int argc, char *argv[])
 		write_buffer[j] = 0;
 	      }
 	    } 
-	  }
-	  //free(current_code);
-          break;
-        }
-	
-        node_to_compare = node_to_compare->next;
+	  }	  
+	  break;
+	}
+	node_to_compare = node_to_compare->next;
 	current_nodes_number++;
       }
-      
-      if(current_symbol == symbols_types_size){
-	symbols_types_size *= 2;
-	symbols_types = realloc(symbols_types, symbols_types_size * sizeof(int));
-      }
-      symbols_types[current_symbol] = current_nodes_number;	  
       current_symbol++;
-    }
-
+    }    
+    
     // galejo likti neirasytu bitu, jei "didelis" buferis nebuvo uzpildytas; jei tokiu liko, irasom juos i rezultatu faila su mazesniu buferiu:    
     if(current_write_buffer_byte > 0 || current_write_buffer_bit_in_byte > 0){
       if(current_write_buffer_bit_in_byte > 0){
@@ -591,8 +551,6 @@ int main(int argc, char *argv[])
       free(all_codes[i]);
     }
     free(read_symbol);
-    free(symbols_types);
-
     return 0;
 }
 

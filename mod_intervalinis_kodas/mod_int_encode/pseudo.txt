@@ -24,14 +24,16 @@ xxd -b file         - bash komanda binary failo pasiziurejimui
 
 
 
+Tekstas testavimui:
 
-
-
-
-012340112220033
- 
-00101 00101 1 00101 1 1 011 1 00101 1 00101
-
-init node
-current node
-current_symbols_code
+Aawe21weoiurq89efosghfg 
+wehqye902y13rshfihzihfHDWOUIHOIDWHQOIhqehy*EQY)(EWHEIOQHYEObIFIWHRFIOQWHEbFBFU
+WFUQOWEYUOIQEY
+WQEBUIOQWHGROIWQHYOGBShuowqgdhoqwhdbiwqhepiqhbfbzxcy28y781948142680
+HYQWRPPQFSJHKASFHIDHPVGPGEWUPPIQEqwueqoiu2149230497234hoisf-2r8r2378sfd
+wqjke2uj93u4932u4
+r32jojr230ur20ur230WERIOREHWIEOR245949201
+EUYQEW*YWQE*yrqw89yq90ryqeHEIHQEIOHQWEOHWQEIO@awewjeopiqh921y4194y9214ys9y0fysfy20347902347239047
+asdiqweoiqhwepoqwehmnxnvjhsdifhiwhem,xnfhirhjwir
+jqwihep129u213984-ads78sa9d079749207342340jsadkldakzxcnbsjfbiehfreiowhoiewgogerqjwehqkenh
+ndqiohqfhqwrfyw90ry3209yu230984-0218*()UDHKSFHhiWHDjksahdlhiKHHSJAFHJSAHFIUWiqeiouqwe

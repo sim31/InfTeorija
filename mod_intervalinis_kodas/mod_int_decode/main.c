@@ -23,7 +23,7 @@ int get_log_infimum(int k);
 void get_c1_code(int k, int arr[CODE_ARR_LENGTH]);
 void get_c2_code(int k, int arr[CODE_ARR_LENGTH]);
 void write_symbol(Symbol *symbol_to_write, unsigned char write_buffer[BUFFER_SIZE], FILE *output_file, int bit_number, int *current_write_buffer_byte, int *current_write_buffer_bit_in_byte);
-int get_symbol(Symbol *symbol_to_get, unsigned char read_buffer[BUFFER_SIZE], FILE *input_file, int bit_number, int *current_buffer_byte, int *current_buffer_bit_in_byte, int *all_codes[], int last_seen_index[], int dict_size, int *bits_left_in_buffer, int coding, int *current_symbol, Symbol *init_node);
+int get_symbol(Symbol *symbol_to_get, unsigned char read_buffer[BUFFER_SIZE], FILE *input_file, int bit_number, int *current_buffer_byte, int *current_buffer_bit_in_byte, int *all_c1_codes[], int last_seen_index[], int dict_size, int *bits_left_in_buffer, int coding, int *current_symbol, Symbol *init_node);
 
 int main(int argc, char *argv[])
 {
@@ -206,12 +206,6 @@ int main(int argc, char *argv[])
     unsigned char header_buffer[6];
     int n = fread(header_buffer, 1, 6, input_file);
 
-    /*
-    for(int i = 0; i < 6; i++){
-      printf("%d\n", header_buffer[i]);
-    }
-    */
-
     // nusistatom koduote
     int coding;
     if(header_buffer[0] == (header_buffer[0] >> 1) << 1){
@@ -219,13 +213,11 @@ int main(int argc, char *argv[])
     } else {
       coding = 1;  // c2 koduote
     }
-    //printf("coding %d\n", coding);
 
     // nusistatom zodzio bitu skaiciu
     int bit_number;
     header_buffer[0] = header_buffer[0] >> 4;
     bit_number = header_buffer[0] + 1;
-    //printf("bit number %d\n", bit_number);
 
     // nusiskaitom netilpusiu bitu kieki
     int left_bits_number = header_buffer[1];
@@ -234,7 +226,6 @@ int main(int argc, char *argv[])
 
     // nusiskaitom zodyno dydi:
     int dict_size = 256 * header_buffer[4] + header_buffer[5] + 1;
-    //printf("dict size: %d\n", dict_size);
 
     // nusistatom, kiek baitu uzima zodynas input faile ir ji nusiskaitome
     int dict_bytes_num = bit_number * dict_size;
@@ -245,12 +236,6 @@ int main(int argc, char *argv[])
     }
     unsigned char dict_buffer[dict_bytes_num];
     n = fread(dict_buffer, 1, dict_bytes_num, input_file);
-
-    /*
-    for(i = 0; i < dict_bytes_num; i++){
-      printf("%d\n", dict_buffer[i]);
-    }
-    */
 
     // sudedame zodyno zodzius i linked lista
     Symbol *init_node = NULL;                           // rodykle i simboliu linked lista (t.y. zodyna)
@@ -266,14 +251,6 @@ int main(int argc, char *argv[])
     }
     current_node = NULL;
 
-    /*
-    current_node = init_node;
-    i = 0;
-    while(current_node->next != NULL){
-      printf("%d", i);
-      current_node = current_node->next;
-    }
-    */
     int mask = 128;
     current_node = init_node;
     while(current_node->next != NULL){
@@ -294,34 +271,25 @@ int main(int argc, char *argv[])
       current_node = current_node->next;
     }
 
-    /*
-    current_node = init_node;
-    while(current_node->next != NULL){
-      printf("\n");
-      for(int j = 0; j < bit_number; j++){
-	printf("%d", current_node->binary_representation[j]);
-      }
-      current_node = current_node->next;
-    } 
-    */
-
     // kadangi intervalinis kodas modifikuotas, pagal zodyno dydi iskart galime nusistatyti visus galimus kodus:
 
-    int *all_codes[dict_size];
+    int *all_c1_codes[dict_size];
     
     for(i = 0; i < dict_size; i++){
-      all_codes[i] = malloc(CODE_ARR_LENGTH * sizeof(int));
+      all_c1_codes[i] = malloc(CODE_ARR_LENGTH * sizeof(int));
+    }
+    // irasom c1 kodus i masyva! jei koduote bus c2, tai reikes susirasti ir ja (bet veliau)
+    for(i = 0; i < dict_size; i++){
+      get_c1_code(i, all_c1_codes[i]);
     }
     
-    if(coding == 0){
-      for(i = 0; i < dict_size; i++){
-	get_c1_code(i, all_codes[i]);
-      }
+      /*
     } else {
       for(i = 0; i < dict_size; i++){
 	get_c2_code(i, all_codes[i]);
       }
     }
+      */
 
     /*
     printf("ALL CODES");
@@ -333,11 +301,12 @@ int main(int argc, char *argv[])
     }
     */
 
-    // susitvarkem su antrastem ir zodynu; pradesim failo skaityma ir dekodavima
+    // susitvarkem su antrastem ir zodynu; pradesim kodu skaityma ir dekodavima
 
     // pagalbiniai kintamieji
-    current_buffer_byte = BUFFER_SIZE;
+    current_buffer_byte = 0;
     current_buffer_bit_in_byte = 0;
+    
     int current_write_buffer_byte = 0;
     int current_write_buffer_bit_in_byte = 0;
     
@@ -348,6 +317,7 @@ int main(int argc, char *argv[])
       write_buffer[i] = 0;
     }
 
+    // fiktyviai pridedam zodyna
     int last_seen_index[dict_size];
     for(i = 0; i < dict_size; i++){
       last_seen_index[i] = i;
@@ -360,7 +330,7 @@ int main(int argc, char *argv[])
     
     while(1){
       found_symbol = malloc(sizeof(Symbol));
-      int result = get_symbol(found_symbol, read_buffer, input_file, bit_number, &current_buffer_byte, &current_buffer_bit_in_byte, all_codes, last_seen_index, dict_size, &bits_left_in_buffer, coding, &current_symbol, init_node);
+      int result = get_symbol(found_symbol, read_buffer, input_file, bit_number, &current_buffer_byte, &current_buffer_bit_in_byte, all_c1_codes, last_seen_index, dict_size, &bits_left_in_buffer, coding, &current_symbol, init_node);
       if(result == -1){
 	break;
       }
@@ -423,8 +393,6 @@ int main(int argc, char *argv[])
       }
 
       // perkeliam viska i char buferi ir irasom i faila
-
-
       char char_buffer[leftovers_buffer_size];
       for(i = 0; i < leftovers_buffer_size; i++){
 	char_buffer[i] = (char)(leftovers_buffer[i]);
@@ -507,6 +475,7 @@ int get_log_infimum(int k){
   return result;
 }
 
+// rasymo f-ja. Pateikto simbolio bitai kaupiami buferyje, ir jei buferis uzpildytas - jis irasomas i faila
 void write_symbol(Symbol *symbol_to_write, unsigned char write_buffer[BUFFER_SIZE], FILE *output_file, int bit_number, int *current_write_buffer_byte, int *current_write_buffer_bit_in_byte){
   for(int i = 0; i < bit_number; i++){
     int mult = 128 >> (*current_write_buffer_bit_in_byte);
@@ -534,40 +503,29 @@ void write_symbol(Symbol *symbol_to_write, unsigned char write_buffer[BUFFER_SIZ
 }
 
 int get_symbol(Symbol *symbol_to_get, unsigned char read_buffer[BUFFER_SIZE], FILE *input_file, int bit_number,
-	       int *current_buffer_byte, int *current_buffer_bit_in_byte, int *all_codes[], int last_seen_index[], int dict_size, int *bits_left_in_buffer, int coding, int *current_symbol, Symbol *init_node){
-  if(*current_buffer_byte == BUFFER_SIZE){
-    int n = fread(read_buffer, 1, BUFFER_SIZE, input_file);
-    if(n == 0){
-      return -1;
-    }
-    *current_buffer_byte = 0;
-    *current_buffer_bit_in_byte = 0;
-    *bits_left_in_buffer = n * 8;
-  }
-  
+	       int *current_buffer_byte, int *current_buffer_bit_in_byte, int *all_c1_codes[], int last_seen_index[], int dict_size, int *bits_left_in_buffer, int coding, int *current_symbol, Symbol *init_node){
   // ieskom kodo buferyj
   int *found_code = malloc(CODE_ARR_LENGTH * sizeof(int));
 
   int mask = 128 >> (*current_buffer_bit_in_byte);
-
-  // c1 kodas
-  if(coding == 0){
-    int zeros_length = 0;
-    // ieskom nuliu
-    while((mask & read_buffer[*current_buffer_byte]) == 0){
-      zeros_length++;
-      (*bits_left_in_buffer)--;
-      if(bits_left_in_buffer == 0){
-	int n = fread(read_buffer, 1, BUFFER_SIZE, input_file);
-	if(n == 0){
-	  free(found_code);
-	  return -1;
-	}
-	*current_buffer_byte = 0;
-	*current_buffer_bit_in_byte = 0;
-	*bits_left_in_buffer = n * 8;
-	mask = 128;
-      } else {
+  
+  int zeros_length = 0;
+  // ieskom nuliu
+  while(1){
+    if(*bits_left_in_buffer == 0){
+      int n = fread(read_buffer, 1, BUFFER_SIZE, input_file);
+      if(n == 0){
+	free(found_code);
+	return -1;
+      }
+      *current_buffer_byte = 0;
+      *current_buffer_bit_in_byte = 0;
+      *bits_left_in_buffer = n * 8;
+      mask = 128;
+    } else {
+      if((mask & read_buffer[*current_buffer_byte]) == 0){
+	zeros_length++;
+	(*bits_left_in_buffer)--;
 	(*current_buffer_bit_in_byte)++;
 	if(*current_buffer_bit_in_byte == 8){
 	  (*current_buffer_byte)++;
@@ -576,16 +534,90 @@ int get_symbol(Symbol *symbol_to_get, unsigned char read_buffer[BUFFER_SIZE], FI
 	} else {
 	  mask = mask >> 1;
 	}
+      } else {
+	break;
       }
     }
-    // suformuojam galimo kodo ilgi:
-    found_code[0] = 2 * zeros_length + 1;
-    for(int i = 1; i <= zeros_length; i++){
-      found_code[i] = 0;
-    }
     
-    // nuskaitom likusius bitus galimam kodui
-    for(int i = zeros_length + 1; i <= 2 * zeros_length + 1; i++){
+  }
+  // suformuojam galimo kodo ilgi:
+  found_code[0] = 2 * zeros_length + 1;
+  for(int i = 1; i <= zeros_length; i++){
+    found_code[i] = 0;
+  }
+  
+  // nuskaitom likusius bitus galimam kodui
+  for(int i = zeros_length + 1; i <= 2 * zeros_length + 1; i++){
+    if(*bits_left_in_buffer == 0){
+      int n = fread(read_buffer, 1, BUFFER_SIZE, input_file);
+      if(n == 0){
+	free(found_code);
+	return -1;
+      }
+      *current_buffer_byte = 0;
+      *current_buffer_bit_in_byte = 0;
+      *bits_left_in_buffer = n * 8;
+      mask = 128;
+    }
+    found_code[i] = mask & read_buffer[*current_buffer_byte];
+    (*bits_left_in_buffer)--;
+    (*current_buffer_bit_in_byte)++;
+    if(*current_buffer_bit_in_byte == 8){
+      (*current_buffer_byte)++;
+      (*current_buffer_bit_in_byte) = 0;
+      mask = 128;
+    } else {
+      mask = mask >> 1;
+    }
+  }
+  
+  for(int i = 1; i <= found_code[0]; i++){
+    if(found_code[i]){
+      found_code[i] = 1;
+    }
+  }
+  
+  printf("\n%d %d\n", *current_buffer_byte, *current_buffer_bit_in_byte);
+  for(int i = 1; i <= found_code[0]; i++){
+    printf("%d", found_code[i]);
+  }
+  printf("\n");
+  
+  // bandom ieskoti suformuoto kodo visu galimu kodu masyve:
+  int distance = -1;
+  int equal_bits;
+  for(int i = 0; i < dict_size; i++){
+    if(found_code[0] > all_c1_codes[i][0]){
+      continue;
+    }
+    if(found_code[0] < all_c1_codes[i][0]){
+      break;
+    }
+    equal_bits = 0;
+    for(int j = 1; j <= all_c1_codes[i][0]; j++){
+      if(all_c1_codes[i][j] == found_code[j]){
+	equal_bits++;
+      }
+    }
+    if(equal_bits == found_code[0]){
+      distance = i;
+    }
+  }
+  if(distance < 0){
+    return -1;
+  }
+
+  // jei koduote buvo c1, tai jau radom distancija; jei koduote yra c2, reikia papildomu veiksmu:
+  printf("\ndistance %d\n", distance);
+  if(coding == 1){
+
+    // zinodami c1 kodo parametra k, galime nusistatyti c2 kodo ilgi:
+    int code_length = 2 + distance + 2 * get_log_infimum(distance);
+    printf("\nlength %d\n", code_length);
+
+    // nuskaitom trukstamus bitus:
+
+    for(int i = found_code[0] + 1; i <= code_length; i++){
       if(*bits_left_in_buffer == 0){
 	int n = fread(read_buffer, 1, BUFFER_SIZE, input_file);
 	if(n == 0){
@@ -608,101 +640,101 @@ int get_symbol(Symbol *symbol_to_get, unsigned char read_buffer[BUFFER_SIZE], FI
 	mask = mask >> 1;
       }
     }
-
-    for(int i = 1; i <= found_code[0]; i++){
+  
+    for(int i = 1; i <= code_length; i++){
       if(found_code[i]){
 	found_code[i] = 1;
       }
     }
-    
-    printf("\n");
-    for(int i = 1; i <= found_code[0]; i++){
-      printf("%d", found_code[i]);
-    }
-    printf("\n");
 
-    // bandom ieskoti suformuoto kodo visu galimu kodu masyve:
-    int distance = -1;
-    int equal_bits;
-    for(int i = 0; i < dict_size; i++){
-      if(found_code[0] > all_codes[i][0]){
+    found_code[0] = code_length;
+    
+    // suformavom c2 koda; reikia susidaryti visu galimu c2 kodu masyva ir surasti tikraja distancija
+    
+    int *all_c2_codes[dict_size];
+    int i;
+    
+    for(i = 0; i < dict_size; i++){
+      all_c2_codes[i] = malloc(CODE_ARR_LENGTH * sizeof(int));
+    }
+    // irasom c2 kodus i masyva
+    for(i = 0; i < dict_size; i++){
+      get_c2_code(i, all_c2_codes[i]);
+    }
+
+    // ir surandam tikraja (c2) distancija
+    
+    for(i = 0; i < dict_size; i++){
+      if(found_code[0] > all_c2_codes[i][0]){
 	continue;
       }
-      if(found_code[0] < all_codes[i][0]){
+      if(found_code[0] < all_c2_codes[i][0]){
 	break;
       }
       equal_bits = 0;
-      for(int j = 1; j <= all_codes[i][0]; j++){
-	//	printf("\n%d %d\n", all_codes[i][j], found_code[j]);
-	if(all_codes[i][j] == found_code[j]){
+      for(int j = 1; j <= all_c2_codes[i][0]; j++){
+	if(all_c2_codes[i][j] == found_code[j]){
 	  equal_bits++;
 	}
       }
-      //      printf("equal bits %d", equal_bits);
       if(equal_bits == found_code[0]){
 	distance = i;
       }
-    }
-    if(distance < 0){
-      return -1;
-    }
-
-    // radom distancija; ieskome pradinio simbolio, kuris buvo uzkoduotas
-    // algoritmas:
-    // ieskosim veliausiai pasirodziusio tekste simbolio tiek kartu, kiek yra distancija, juos atmesdami.
-    // tada vel rasim veliausiai pasirodziusi simboli - tai ir bus ieskomas simbolis.
-    
-    int temp_seen_index[dict_size];
-    for(int i = 0; i < dict_size; i++){
-      temp_seen_index[i] = last_seen_index[i];
-    }
-
-    // atmetam simbolius pagal distancija
-    int max;
-    for(int i = 0; i < distance; i++){
-      max = -1;
-      // ieskom maksimumo
-      for(int j = 0; j < dict_size; j++){
-	if(temp_seen_index[j] > max){
-	  max = temp_seen_index[j];
-	}
-      }
-      for(int j = 0; j < dict_size; j++){
-	if(temp_seen_index[j] == max){
-	  temp_seen_index[j] = -1;
-	}
-      }
-    }
-
-    int symbol_number;
-    // ir randam tikrojo simbolio eiles nr. zodyne (vel ieskom maksimumo):
+    } 
+  }
+  
+  // radom distancija; ieskome pradinio simbolio, kuris buvo uzkoduotas
+  // algoritmas:
+  // ieskosim veliausiai pasirodziusio tekste simbolio tiek kartu, kiek yra distancija, juos atmesdami.
+  // tada vel rasim veliausiai pasirodziusi simboli - tai ir bus ieskomas simbolis.
+  
+  int temp_seen_index[dict_size];
+  for(int i = 0; i < dict_size; i++){
+    temp_seen_index[i] = last_seen_index[i];
+  }
+  
+  // atmetam simbolius pagal distancija
+  int max;
+  for(int i = 0; i < distance; i++){
     max = -1;
-    for(int i = 0; i < dict_size; i++){
-      if(temp_seen_index[i] > max){
-	max = temp_seen_index[i];
+    // ieskom maksimumo
+    for(int j = 0; j < dict_size; j++){
+      if(temp_seen_index[j] > max){
+	max = temp_seen_index[j];
       }
     }
-    for(int i = 0; i < dict_size; i++){
-      if(temp_seen_index[i] == max){
-	symbol_number = i;
-	last_seen_index[i] = *current_symbol;
-      }      
+    for(int j = 0; j < dict_size; j++){
+      if(temp_seen_index[j] == max){
+	temp_seen_index[j] = -1;
+      }
     }
-    printf("\nsymbol number %d\n", symbol_number);
-    (*current_symbol)++;
-
-    // radom simbolio indeksa zodyne! dabar reikia suformuoti pati simboli:
-    Symbol *temp_symbol = init_node;
-    for(int i = 0; i < symbol_number; i++){
-      temp_symbol = temp_symbol->next;
+  }
+  
+  int symbol_number;
+  // ir randam tikrojo simbolio eiles nr. zodyne (vel ieskom maksimumo):
+  max = -1;
+  for(int i = 0; i < dict_size; i++){
+    if(temp_seen_index[i] > max){
+      max = temp_seen_index[i];
     }
-    for(int i = 0; i < bit_number; i++){
-      symbol_to_get->binary_representation[i] = temp_symbol->binary_representation[i];
-    }
-    // c2 kodas
-  } else {
-    // TODO
-  }  
+  }
+  for(int i = 0; i < dict_size; i++){
+    if(temp_seen_index[i] == max){
+      symbol_number = i;
+      last_seen_index[i] = *current_symbol;
+    }      
+  }
+  printf("\nsymbol number %d\n", symbol_number);
+  (*current_symbol)++;
+  
+  // radom simbolio indeksa zodyne! dabar reikia suformuoti pati simboli:
+  Symbol *temp_symbol = init_node;
+  for(int i = 0; i < symbol_number; i++){
+    temp_symbol = temp_symbol->next;
+  }
+  for(int i = 0; i < bit_number; i++){
+    symbol_to_get->binary_representation[i] = temp_symbol->binary_representation[i];
+  }
   return 0;
 }
 
