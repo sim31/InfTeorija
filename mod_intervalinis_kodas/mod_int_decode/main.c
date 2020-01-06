@@ -579,6 +579,7 @@ int get_symbol(Symbol *symbol_to_get, unsigned char read_buffer[BUFFER_SIZE], FI
     }
   }
   if(distance < 0){
+    free(found_code);
     return -1;
   }
 
@@ -707,5 +708,6 @@ int get_symbol(Symbol *symbol_to_get, unsigned char read_buffer[BUFFER_SIZE], FI
   for(int i = 0; i < bit_number; i++){
     symbol_to_get->binary_representation[i] = temp_symbol->binary_representation[i];
   }
+  free(found_code);
   return 0;
 }

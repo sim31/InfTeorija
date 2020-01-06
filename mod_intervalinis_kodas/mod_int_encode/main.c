@@ -492,7 +492,8 @@ int main(int argc, char *argv[])
 		write_buffer[j] = 0;
 	      }
 	    } 
-	  }	  
+	  }
+	  free(current_code);
 	  break;
 	}
 	node_to_compare = node_to_compare->next;
