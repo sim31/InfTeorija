@@ -1,7 +1,7 @@
 #!/bin/bash
 
-BITS=12
-CODING="c1"
+BITS=6
+CODING="c2"
 
 source_file="test-files/$1"
 archive="test-files/output.bin"
